@@ -25,15 +25,14 @@ export class CompliantLambda extends lambda.Function {
   constructor(scope: Construct, id: string, props: CompliantLambdaProps) {
     super(scope, id, {
       ...props,
-
     })
-
     this.node.addValidation({
       validate: () => {
         return [
-          ...serviceVal.isRuntimeValid(this.runtime) ? [] : [`Lambda runtime is invalid`],
+          ...serviceVal.isRuntimeValid(this.runtime, props) ? [] : [`Lambda runtime is invalid`],
           ...serviceVal.checkNoPublicAccess(props) ? [] : ['Please disable public access.'],
-          ...serviceVal.checkVpcEnabled(props) ? [] : ['Vpc not enabled.']
+          ...serviceVal.checkVpcEnabled(props) ? [] : ['Vpc not enabled.'],
+          ...serviceVal.checkVpcMultiAz(props) ? [] : ['Vpc does not have multi az.']
         ]
       }
     })

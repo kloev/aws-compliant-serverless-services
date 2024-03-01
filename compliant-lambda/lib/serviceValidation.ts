@@ -25,7 +25,10 @@ export const validRuntimes = [
     lambda.Runtime.DOTNET_6
 ]
 
-export function isRuntimeValid(rt: lambda.Runtime) :boolean {
+export function isRuntimeValid(rt: lambda.Runtime, props: CompliantLambdaProps) :boolean {
+    if (props.disabledRules?.includes('LAMBDA_FUNCTION_SETTINGS_CHECK')) {
+        return true;
+    };
     return (validRuntimes.includes(rt));
 };
 
@@ -34,6 +37,9 @@ export function isRuntimeValid(rt: lambda.Runtime) :boolean {
  * LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED
  */
 export function checkNoPublicAccess(props: CompliantLambdaProps): boolean {
+    if (props.disabledRules?.includes('LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED')) {
+        return true;
+    };
     const principal =  props.role?.grantPrincipal
     // Prüfen, ob der Principal leer ist oder ein Wildcard (*) enthält
     if (!principal || typeof principal === 'string' && principal === "*" || Object.keys(principal).length === 0) {
@@ -51,10 +57,25 @@ export function checkNoPublicAccess(props: CompliantLambdaProps): boolean {
  * LAMBDA_INSIDE_VPC
  */
 export function checkVpcEnabled(props: CompliantLambdaProps): boolean {
+    if (props.disabledRules?.includes('LAMBDA_INSIDE_VPC')) {
+        return true;
+    };
     if (props.vpc && props.vpcSubnets) {
         return true
     };
     return false;
 }
 
-
+/**
+ * Vpc has multi az
+ * LAMBDA_VPC_MULTI_AZ_CHECK
+ */
+export function checkVpcMultiAz(props: CompliantLambdaProps): boolean {
+    if (props.disabledRules?.includes('LAMBDA_VPC_MULTI_AZ_CHECK')) {
+        return true;
+    };
+    if (props.vpc && (props.vpcSubnets?.subnetType ?? undefined === 'PRIVATE_WITH_EGRESS')) {
+        return true;
+    }
+    return false;
+}
