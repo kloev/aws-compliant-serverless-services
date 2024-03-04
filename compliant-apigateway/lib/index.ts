@@ -3,7 +3,8 @@ import {
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as serviceVal from './serviceValidation';
-import { CfnRestApi } from 'aws-cdk-lib/aws-apigateway';
+import * as serviceProps from './serviceProps';
+import { CfnRestApi, CfnStage } from 'aws-cdk-lib/aws-apigateway';
 
 export interface CompliantApiStageProps extends apigw.StageProps {
   // Define construct properties here
@@ -28,20 +29,24 @@ export interface CompliantApigatewayProps extends apigw.RestApiProps {
  *
  * List of rules to opt out:
  * 'API_GW_ENDPOINT_TYPE_CHECK'
+ * 'API_GW_CACHE_ENABLED_AND_ENCRYPTED'
+ * 'API_GW_EXECUTION_LOGGING_ENABLED'
  */
   readonly disabledRules?: string[];
 }
 export class CompliantApiStage extends apigw.Stage {
-  constructor(scope: Construct, id: string, props: apigw.StageProps) {
+  constructor(scope: Construct, id: string, props: CompliantApiStageProps) {
     super(scope, id, {
       ...props,
+      cachingEnabled: serviceProps.getCacheEnabled(props),
+      cacheDataEncrypted: serviceProps.getCacheEncrypted(props),
     });
     this.node.addValidation({
       validate: () => {
         return [
           // checkWafAssociated
-          // checkCacheEnabledEncrytped
           // checkExecutionLoggingEnabled
+          ...serviceVal.checkExecutionLoggingEnabled(props) ? [] : ["Execution logging is not enabled."],
         ]
       }
     })
@@ -53,12 +58,12 @@ export class CompliantApigateway extends apigw.RestApi {
   constructor(scope: Construct, id: string, props: CompliantApigatewayProps) {
     super(scope, id, {
       ...props,
+      deployOptions: serviceProps.getDeployOptionsv1(props),
     })
     this.node.addValidation({
       validate: () => {
         return [
-          // checkEndpointType
-          ...serviceVal.isEndpointTypeValid(((this?.node.defaultChild as CfnRestApi).endpointConfiguration as any), props) ? [] : ["Endpoint type is invalid."]
+          ...serviceVal.isEndpointTypeValid(((this?.node.defaultChild as CfnRestApi).endpointConfiguration as any), props) ? [] : ["Endpoint type is invalid."],
         ]
       }
     })

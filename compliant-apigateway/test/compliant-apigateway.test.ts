@@ -5,21 +5,23 @@ import {
 } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { CompliantApigateway, CompliantApiStage } from '../lib/index';
-import { EndpointType } from 'aws-cdk-lib/aws-apigateway';
+import { Deployment, EndpointType, Method } from 'aws-cdk-lib/aws-apigateway';
+import { join } from 'path';
 
+/**
+ * API Gateway Endpoint Type Check
+ */
 test('Test API Endpoint Type EDGE', () => {
     const app = new App();
     const stack = new Stack(app, "TestStack");
     const api = new CompliantApigateway(stack, 'MyTestConstruct', {
-        endpointTypes: [apigw.EndpointType.EDGE]
+        endpointTypes: [apigw.EndpointType.EDGE],
     });
     api.root.addMethod('ANY');
 
-    expect(() => {
-        Template.fromStack(stack).hasResourceProperties('AWS::ApiGateway::RestApi', {
-            EndpointConfiguration: { Types: [apigw.EndpointType.EDGE] },
-        });
-    }).not.toThrow();
+    Template.fromStack(stack).hasResourceProperties('AWS::ApiGateway::RestApi', {
+        EndpointConfiguration: { Types: [apigw.EndpointType.EDGE] },
+    });
 })
 
 test('Test API Endpoint Type REGIONAL', () => {
@@ -30,11 +32,9 @@ test('Test API Endpoint Type REGIONAL', () => {
     });
     api.root.addMethod('ANY');
 
-    expect(() => {
-        Template.fromStack(stack).hasResourceProperties('AWS::ApiGateway::RestApi', {
-            EndpointConfiguration: { Types: [apigw.EndpointType.REGIONAL] },
-        });
-    }).not.toThrow();
+    Template.fromStack(stack).hasResourceProperties('AWS::ApiGateway::RestApi', {
+        EndpointConfiguration: { Types: [apigw.EndpointType.REGIONAL] },
+    });
 })
 
 test('Test API Endpoint Type PRIVATE', () => {
@@ -45,14 +45,44 @@ test('Test API Endpoint Type PRIVATE', () => {
     });
     api.root.addMethod('ANY');
 
-    expect(() => {
-        Template.fromStack(stack).hasResourceProperties('AWS::ApiGateway::RestApi', {
-            EndpointConfiguration: { Types: [apigw.EndpointType.PRIVATE] },
-        });
-    }).not.toThrow();
+    Template.fromStack(stack).hasResourceProperties('AWS::ApiGateway::RestApi', {
+        EndpointConfiguration: { Types: [apigw.EndpointType.PRIVATE] },
+    });
 });
 
+/**
+ * API Gateway Cache Enabled and Encrypted
+ */
+test('API Gateway Cache Enabled and Encrypted', () => {
+    const app = new App();
+    const stack = new Stack(app, "TestStack");
+    // WHEN
+    const api = new CompliantApigateway(stack, 'MyTestConstruct', {
+        endpointTypes: [apigw.EndpointType.EDGE],
+        deployOptions: {
+            cachingEnabled: true,
+            cacheDataEncrypted: true,
+            cacheClusterEnabled: true,
+        },
+    });
+    api.root.addMethod('ANY');
+    // THEN
+    Template.fromStack(stack).hasResourceProperties('AWS::ApiGateway::Stage', {
+        MethodSettings: [
+            {
+                HttpMethod: "*",
+                ResourcePath: "/*",
+                CacheDataEncrypted: true,
+                CachingEnabled: true,
+            }
+        ],
+        CacheClusterEnabled: true,
+    });
+});
 
+/**
+ * API Gateway is associated with WAF
+ */
 test('API Gateway Stage is associated with WAF', () => {
     const app = new App();
     const stack = new Stack(app, "TestStack");
@@ -89,8 +119,11 @@ test('API Gateway Stage is associated with WAF', () => {
             },
         }]
     });
-
     const api = new CompliantApigateway(stack, 'MyTestConstruct', {
+        endpointTypes: [apigw.EndpointType.EDGE],
+        deployOptions: {
+            stageName: 'prod',
+        },
         // deployOptions: {
         //     stageName: 'v1',
         //     description: 'V1 Deployment',
@@ -125,30 +158,24 @@ test('API Gateway Stage is associated with WAF', () => {
         //     metricsEnabled: false,
         // },
     });
-    const deployment = new apigw.Deployment(stack, 'Deployment', { api });
-    const stage = new CompliantApiStage(stack, 'TestStage', {
-        deployment: deployment,
-        cacheClusterEnabled: true,
-        cacheDataEncrypted: true
-    });
+    api.root.addMethod('ANY');
     const cfnWebACLAssociation = new waf.CfnWebACLAssociation(stack, 'TestWebACLAssociation', {
-        resourceArn: stage.stageArn,
+        resourceArn: api.deploymentStage.stageArn,// stage.stageArn,
         webAclArn: cfnWebACL.attrArn,
     });
-
     // THEN
-    Template.fromStack(stack).hasResourceProperties('AWS::ApiGateway::Stage', {
-        CacheClusterEnabled: true,
-        CacheDataEncrypted: true,
-
-    });
-    Template.fromStack(stack).hasResourceProperties('AWS::WAFv2::WebACLAssociation', {
-        ResourceArn: {
-            "Fn::GetAtt": [
-                "TestStageprod5C9A6C0D",
-                "Stage"
-            ]
+    const template = Template.fromStack(stack);
+    template.hasResourceProperties('AWS::ApiGateway::Stage', {
+        StageName: "prod",
+        DeploymentId: {
+            Ref: "MyTestConstructDeploymentC8A0B8DD05103d0c4f6f1a4b9430be4703659ee0"
         },
+        RestApiId: {
+            Ref: "MyTestConstruct5DDB28CF"
+        },
+    });
+    template.hasResourceProperties('AWS::WAFv2::WebACLAssociation', {
+        ResourceArn: stack.resolve(api.deploymentStage.stageArn),
         WebACLArn: {
             "Fn::GetAtt": [
                 "MyCDKWebAcl",

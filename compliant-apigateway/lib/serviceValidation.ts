@@ -29,6 +29,9 @@ export function isEndpointTypeValid(epc: apigw.EndpointConfiguration, props: Com
   if (props.disabledRules?.includes('API_GW_ENDPOINT_TYPE_CHECK')) {
     return true;
   };
+  if (!epc) {
+    throw new Error('EndpointConfiguration must have at least one endpoint type');
+  }
   for (const endpoint of epc.types) {
     if (!validEndpoints.includes(endpoint)) {
       return false;
@@ -74,7 +77,29 @@ export function checkCacheEnabledEncrytped(stage: apigw.Stage, props: CompliantA
  * @param stage 
  * @returns 
  */
-export function checkExecutionLoggingEnabled(stage: apigw.Stage, props: CompliantApiStageProps): boolean {
-  if (props.disabledRules?.includes('API_GW_EXECUTION_LOGGING_ENABLED')) { return true; }
+// export function checkExecutionLoggingEnabled(stage: apigw.Stage, props: CompliantApiStageProps): boolean {
+//   if (props.disabledRules?.includes('API_GW_EXECUTION_LOGGING_ENABLED')) { return true; }
+//   return false;
+// }
+
+/**
+ * 
+ * @param props 
+ * @returns 
+ */
+export function checkExecutionLoggingEnabled(props: CompliantApiStageProps): boolean {
+  if (props.disabledRules?.includes('API_GW_EXECUTION_LOGGING_ENABLED')) {
+    return true;
+  }
+  if (props.loggingLevel === undefined) {
+    throw new Error('loggingLevel must be defined');
+  }
+  //Checks if all methods in Amazon API Gateway stages have logging enabled. The rule is NON_COMPLIANT if logging is not enabled, or if loggingLevel is neither ERROR nor INFO.
+  if (
+    props.loggingLevel !== apigw.MethodLoggingLevel.ERROR
+    && props.loggingLevel !== apigw.MethodLoggingLevel.INFO
+    && props.loggingLevel !== apigw.MethodLoggingLevel.OFF) {
+    return false;
+  }
   return false;
 }
