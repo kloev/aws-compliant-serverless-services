@@ -124,39 +124,6 @@ test('API Gateway Stage is associated with WAF', () => {
         deployOptions: {
             stageName: 'prod',
         },
-        // deployOptions: {
-        //     stageName: 'v1',
-        //     description: 'V1 Deployment',
-        //     /**
-        //      * Enable tracing and logging in JSON format for the API.
-        //      */
-        //     tracingEnabled: true,
-        //     accessLogDestination: new LogGroupLogDestination(new LogGroup(this, 'AccessLog', {
-        //         retention: RetentionDays.ONE_MONTH,
-        //         removalPolicy: RemovalPolicy.DESTROY,
-        //     })),
-        //     accessLogFormat: AccessLogFormat.custom(JSON.stringify({
-        //         requestTime: AccessLogField.contextRequestTime(),
-        //         requestTimeEpoch: AccessLogField.contextRequestTimeEpoch(),
-        //         requestId: AccessLogField.contextRequestId(),
-        //         extendedRequestId: AccessLogField.contextExtendedRequestId(),
-        //         sourceIp: AccessLogField.contextIdentitySourceIp(),
-        //         method: AccessLogField.contextHttpMethod(),
-        //         resourcePath: AccessLogField.contextResourcePath(),
-        //         traceId: AccessLogField.contextXrayTraceId(),
-        //     })),
-        //     /**
-        //      * Execution logs.
-        //      * Only required for debugging.
-        //      * Creates an additional log group that we cannot control.
-        //      */
-        //     loggingLevel: MethodLoggingLevel.OFF,
-        //     /**
-        //      * Enable Details Metrics. Additional costs incurred
-        //      * Creates metrics at the method level.
-        //      */
-        //     metricsEnabled: false,
-        // },
     });
     api.root.addMethod('ANY');
     const cfnWebACLAssociation = new waf.CfnWebACLAssociation(stack, 'TestWebACLAssociation', {
