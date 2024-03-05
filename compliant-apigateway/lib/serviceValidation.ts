@@ -14,6 +14,11 @@ import { CompliantApigatewayProps, CompliantApiStageProps } from '.';
 * 'API_GW_EXECUTION_LOGGING_ENABLED'
 */
 
+const API_GW_ENDPOINT_TYPE_CHECK = 'API_GW_ENDPOINT_TYPE_CHECK';
+const API_GW_ASSOCIATED_WITH_WAF = 'API_GW_ASSOCIATED_WITH_WAF';
+const API_GW_CACHE_ENABLED_AND_ENCRYPTED = 'API_GW_CACHE_ENABLED_AND_ENCRYPTED';
+const API_GW_EXECUTION_LOGGING_ENABLED = 'API_GW_EXECUTION_LOGGING_ENABLED';
+const API_GW_DOMAIN_REQUIRED = 'API_GW_DOMAIN_REQUIRED';
 
 /**
  * checkEndpointType
@@ -26,7 +31,7 @@ const validEndpoints = [
   apigw.EndpointType.REGIONAL,
 ]
 export function isEndpointTypeValid(epc: apigw.EndpointConfiguration, props: CompliantApigatewayProps): boolean {
-  if (props.disabledRules?.includes('API_GW_ENDPOINT_TYPE_CHECK')) {
+  if (props.disabledRules?.includes(API_GW_ENDPOINT_TYPE_CHECK)) {
     return true;
   };
   if (!epc) {
@@ -47,7 +52,7 @@ export function isEndpointTypeValid(epc: apigw.EndpointConfiguration, props: Com
  * @returns 
  */
 export function checkWafAssociated(stage: apigw.Stage, props: CompliantApiStageProps): boolean {
-  if (props.disabledRules?.includes('API_GW_ASSOCIATED_WITH_WAF')) { return true; }
+  if (props.disabledRules?.includes(API_GW_ASSOCIATED_WITH_WAF)) { return true; }
 
   //check if an api gateway stage is associated with a waf
   // return true if associated with a waf
@@ -63,7 +68,7 @@ export function checkWafAssociated(stage: apigw.Stage, props: CompliantApiStageP
  * @returns 
  */
 export function checkCacheEnabledEncrytped(stage: apigw.Stage, props: CompliantApiStageProps): boolean {
-  if (props.disabledRules?.includes('API_GW_CACHE_ENABLED_AND_ENCRYPTED')) { return true; }
+  if (props.disabledRules?.includes(API_GW_CACHE_ENABLED_AND_ENCRYPTED)) { return true; }
   //check if cache is enabled and encrypted
   // return true if cache is enabled and encrypted
   // stage.cacheClusterEnabled = true;
@@ -77,18 +82,8 @@ export function checkCacheEnabledEncrytped(stage: apigw.Stage, props: CompliantA
  * @param stage 
  * @returns 
  */
-// export function checkExecutionLoggingEnabled(stage: apigw.Stage, props: CompliantApiStageProps): boolean {
-//   if (props.disabledRules?.includes('API_GW_EXECUTION_LOGGING_ENABLED')) { return true; }
-//   return false;
-// }
-
-/**
- * 
- * @param props 
- * @returns 
- */
 export function checkExecutionLoggingEnabled(props: CompliantApiStageProps): boolean {
-  if (props.disabledRules?.includes('API_GW_EXECUTION_LOGGING_ENABLED')) {
+  if (props.disabledRules?.includes(API_GW_EXECUTION_LOGGING_ENABLED)) {
     return true;
   }
   if (props.loggingLevel === undefined) {
@@ -100,6 +95,22 @@ export function checkExecutionLoggingEnabled(props: CompliantApiStageProps): boo
     && props.loggingLevel !== apigw.MethodLoggingLevel.INFO
     && props.loggingLevel !== apigw.MethodLoggingLevel.OFF) {
     return false;
+  }
+  return false;
+}
+
+/**
+ * checkDomainRequired
+ * API_GW_DOMAIN_REQUIRED
+ * @param stage 
+ * @returns 
+ */
+export function checkDomainRequired(props: CompliantApigatewayProps): boolean {
+  if (props.disabledRules?.includes(API_GW_DOMAIN_REQUIRED)) { return true; }
+  //check if domain is required
+  // return true if domain is required
+  if (props.domainName && props.disableExecuteApiEndpoint === true) {
+    return true;
   }
   return false;
 }

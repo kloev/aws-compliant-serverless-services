@@ -8,7 +8,6 @@ import { CompliantApiStageProps, CompliantApigatewayProps } from '.';
 // const RULE = 'RULE';
 const API_GW_ASSOCIATED_WITH_WAF = 'API_GW_ASSOCIATED_WITH_WAF';
 const API_GW_CACHE_ENABLED_AND_ENCRYPTED = 'API_GW_CACHE_ENABLED_AND_ENCRYPTED';
-const API_GW_ENDPOINT_TYPE_CHECK = 'API_GW_ENDPOINT_TYPE_CHECK';
 const API_GW_EXECUTION_LOGGING_ENABLED = 'API_GW_EXECUTION_LOGGING_ENABLED';
 
 /**
@@ -34,6 +33,18 @@ export function getCacheEncrypted(props: CompliantApiStageProps) {
     }
     return !props.disabledRules?.includes(API_GW_CACHE_ENABLED_AND_ENCRYPTED);
 };
+
+/**
+ * 
+ * @param props 
+ * @returns 
+ */
+// export function getLoggingLevel(props: CompliantApiStageProps) {
+//     if (props.disabledRules?.includes(API_GW_EXECUTION_LOGGING_ENABLED)) {
+//         return props.loggingLevel;
+//     }
+//     return apigw.MethodLoggingLevel.;
+// };
 
 // export function getDeployOptions(props: CompliantApigatewayProps) {
 //     if (props.disabledRules?.includes(API_GW_CACHE_ENABLED_AND_ENCRYPTED) && props.disabledRules?.includes(API_GW_EXECUTION_LOGGING_ENABLED)) {
@@ -98,7 +109,6 @@ export function getCacheEncrypted(props: CompliantApiStageProps) {
 //         // },
 
 // };
-
 
 export function getDeployOptionsv1(props: CompliantApigatewayProps) {
     if (props.disabledRules?.includes(API_GW_CACHE_ENABLED_AND_ENCRYPTED) && props.disabledRules?.includes(API_GW_EXECUTION_LOGGING_ENABLED)) {

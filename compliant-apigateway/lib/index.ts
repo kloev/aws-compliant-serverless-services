@@ -31,6 +31,7 @@ export interface CompliantApigatewayProps extends apigw.RestApiProps {
  * 'API_GW_ENDPOINT_TYPE_CHECK'
  * 'API_GW_CACHE_ENABLED_AND_ENCRYPTED'
  * 'API_GW_EXECUTION_LOGGING_ENABLED'
+ * 'API_GW_DOMAIN_REQUIRED'
  */
   readonly disabledRules?: string[];
 }
@@ -40,6 +41,7 @@ export class CompliantApiStage extends apigw.Stage {
       ...props,
       cachingEnabled: serviceProps.getCacheEnabled(props),
       cacheDataEncrypted: serviceProps.getCacheEncrypted(props),
+      // loggingLevel: serviceProps.getLoggingLevel(props),
     });
     this.node.addValidation({
       validate: () => {
@@ -64,6 +66,7 @@ export class CompliantApigateway extends apigw.RestApi {
       validate: () => {
         return [
           ...serviceVal.isEndpointTypeValid(((this?.node.defaultChild as CfnRestApi).endpointConfiguration as any), props) ? [] : ["Endpoint type is invalid."],
+          ...serviceVal.checkDomainRequired(props) ? [] : ["Domain name is required and ExecuteApiEndpoint must be disabled."],
         ]
       }
     })
