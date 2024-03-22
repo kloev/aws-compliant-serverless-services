@@ -3,17 +3,15 @@ import {
 } from 'aws-cdk-lib';
 import { CompliantApiStageProps, CompliantApigatewayProps } from '.';
 
-
 //Compliant config rules
-// const RULE = 'RULE';
-const API_GW_ASSOCIATED_WITH_WAF = 'API_GW_ASSOCIATED_WITH_WAF';
+// const API_GW_ASSOCIATED_WITH_WAF = 'API_GW_ASSOCIATED_WITH_WAF';
 const API_GW_CACHE_ENABLED_AND_ENCRYPTED = 'API_GW_CACHE_ENABLED_AND_ENCRYPTED';
 const API_GW_EXECUTION_LOGGING_ENABLED = 'API_GW_EXECUTION_LOGGING_ENABLED';
 
 /**
- * 
- * @param props 
- * @returns 
+ * checks if cache is enabled
+ * @param props : CompliantApiStageProps
+ * @returns boolean
  */
 export function getCacheEnabled(props: CompliantApiStageProps) {
     if (props.disabledRules?.includes(API_GW_CACHE_ENABLED_AND_ENCRYPTED)) {
@@ -23,9 +21,9 @@ export function getCacheEnabled(props: CompliantApiStageProps) {
 };
 
 /**
- * 
- * @param props 
- * @returns 
+ * checks if cache encrypted
+ * @param props : CompliantApiStageProps
+ * @returns boolean
  */
 export function getCacheEncrypted(props: CompliantApiStageProps) {
     if (props.disabledRules?.includes(API_GW_CACHE_ENABLED_AND_ENCRYPTED)) {
@@ -110,6 +108,11 @@ export function getCacheEncrypted(props: CompliantApiStageProps) {
 
 // };
 
+/**
+ * checks if the deployment stage is compliant
+ * @param props 
+ * @returns 
+ */
 export function getDeployOptionsv1(props: CompliantApigatewayProps) {
     if (props.disabledRules?.includes(API_GW_CACHE_ENABLED_AND_ENCRYPTED) && props.disabledRules?.includes(API_GW_EXECUTION_LOGGING_ENABLED)) {
         return props.deployOptions;

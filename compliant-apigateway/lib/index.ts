@@ -4,16 +4,14 @@ import {
 import { Construct } from 'constructs';
 import * as serviceVal from './serviceValidation';
 import * as serviceProps from './serviceProps';
-import { CfnRestApi, CfnStage } from 'aws-cdk-lib/aws-apigateway';
+import { CfnRestApi } from 'aws-cdk-lib/aws-apigateway';
 
 export interface CompliantApiStageProps extends apigw.StageProps {
-  // Define construct properties here
   /**
 * AWS Config rules that I want to opt out
-* @default - table is compliant against all rules
+* @default - construct is compliant against all rules
 *
 * List of rules to opt out:
-* 'API_GW_ASSOCIATED_WITH_WAF'
 * 'API_GW_CACHE_ENABLED_AND_ENCRYPTED'
 * 'API_GW_EXECUTION_LOGGING_ENABLED'
 */
@@ -21,18 +19,16 @@ export interface CompliantApiStageProps extends apigw.StageProps {
 }
 
 export interface CompliantApigatewayProps extends apigw.RestApiProps {
-  // Define construct properties here
-
   /**
- * AWS Config rules that I want to opt out
- * @default - table is compliant against all rules
- *
- * List of rules to opt out:
- * 'API_GW_ENDPOINT_TYPE_CHECK'
- * 'API_GW_CACHE_ENABLED_AND_ENCRYPTED'
- * 'API_GW_EXECUTION_LOGGING_ENABLED'
- * 'API_GW_DOMAIN_REQUIRED'
- */
+   * AWS Config rules that I want to opt out
+   * @default - construct is compliant against all rules
+   *
+   * List of rules to opt out:
+   * 'API_GW_ENDPOINT_TYPE_CHECK'
+   * 'API_GW_CACHE_ENABLED_AND_ENCRYPTED'
+   * 'API_GW_EXECUTION_LOGGING_ENABLED'
+   * 'API_GW_DOMAIN_REQUIRED'
+   */
   readonly disabledRules?: string[];
 }
 export class CompliantApiStage extends apigw.Stage {
@@ -41,7 +37,6 @@ export class CompliantApiStage extends apigw.Stage {
       ...props,
       cachingEnabled: serviceProps.getCacheEnabled(props),
       cacheDataEncrypted: serviceProps.getCacheEncrypted(props),
-      // loggingLevel: serviceProps.getLoggingLevel(props),
     });
     this.node.addValidation({
       validate: () => {

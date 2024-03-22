@@ -33,6 +33,7 @@ export interface CompliantDynamodbProps extends dynamodb.TableProps {
       'DYNAMODB_THROUGHPUT_LIMIT_CHECK',
       'DYNAMODB_TABLE_ENCRYPTED_KMS',
       'DYNAMODB_TABLE_DELETION_PROTECTION_ENABLED'
+      'DYNAMODB_BILLING_MODE'
    */
   readonly disabledRules?: string[];
 
@@ -61,6 +62,7 @@ export class CompliantDynamodbTable extends dynamodb.Table {
       validate: () => {
         return [
           ...serviceVal.checkThroughoutLimit(props) ? [] : ['Please set a throughput limit'],
+          ...serviceVal.checkAutoscalingEnabled(props, this) ? [] : ['Please enable autoscaling'],
         ]
       }
     })

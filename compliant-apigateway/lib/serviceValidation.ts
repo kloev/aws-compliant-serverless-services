@@ -3,33 +3,26 @@ import {
 } from 'aws-cdk-lib';
 import { CompliantApigatewayProps, CompliantApiStageProps } from '.';
 
-/**
-* AWS Config rules that I want to opt out
-* @default - table is compliant against all rules
-*
-* List of rules to opt out:
-* 'API_GW_ASSOCIATED_WITH_WAF'
-* 'API_GW_CACHE_ENABLED_AND_ENCRYPTED'
-* 'API_GW_ENDPOINT_TYPE_CHECK'
-* 'API_GW_EXECUTION_LOGGING_ENABLED'
-*/
-
+//Compliant config rules
 const API_GW_ENDPOINT_TYPE_CHECK = 'API_GW_ENDPOINT_TYPE_CHECK';
-const API_GW_ASSOCIATED_WITH_WAF = 'API_GW_ASSOCIATED_WITH_WAF';
-const API_GW_CACHE_ENABLED_AND_ENCRYPTED = 'API_GW_CACHE_ENABLED_AND_ENCRYPTED';
+// const API_GW_ASSOCIATED_WITH_WAF = 'API_GW_ASSOCIATED_WITH_WAF';
 const API_GW_EXECUTION_LOGGING_ENABLED = 'API_GW_EXECUTION_LOGGING_ENABLED';
 const API_GW_DOMAIN_REQUIRED = 'API_GW_DOMAIN_REQUIRED';
 
-/**
- * checkEndpointType
- * API_GW_ENDPOINT_TYPE_CHECK
- */
 
 const validEndpoints = [
   apigw.EndpointType.EDGE,
   apigw.EndpointType.PRIVATE,
   apigw.EndpointType.REGIONAL,
 ]
+/**
+ * checks if endpoint type is valid
+ * API_GW_ENDPOINT_TYPE_CHECK
+ * @param epc : EndpointConfiguration
+ * @param props : CompliantApigatewayProps
+ * @returns boolean
+ *  
+*/
 export function isEndpointTypeValid(epc: apigw.EndpointConfiguration, props: CompliantApigatewayProps): boolean {
   if (props.disabledRules?.includes(API_GW_ENDPOINT_TYPE_CHECK)) {
     return true;
@@ -46,41 +39,26 @@ export function isEndpointTypeValid(epc: apigw.EndpointConfiguration, props: Com
 };
 
 /**
- * checkWafAssociated
+ * TO--DO
  * API_GW_ASSOCIATED_WITH_WAF
  * @param stage 
  * @returns 
  */
-export function checkWafAssociated(stage: apigw.Stage, props: CompliantApiStageProps): boolean {
-  if (props.disabledRules?.includes(API_GW_ASSOCIATED_WITH_WAF)) { return true; }
+// export function checkWafAssociated(stage: apigw.Stage, props: CompliantApiStageProps): boolean {
+//   if (props.disabledRules?.includes(API_GW_ASSOCIATED_WITH_WAF)) { return true; }
 
-  //check if an api gateway stage is associated with a waf
-  // return true if associated with a waf
+//   //check if an api gateway stage is associated with a waf
+//   // return true if associated with a waf
 
-  // return false if not associated with a waf
-  return false;
-}
-
-/**
- * checkCacheEnabledEncrytped
- * API_GW_CACHE_ENABLED_AND_ENCRYPTED
- * @param stage 
- * @returns 
- */
-export function checkCacheEnabledEncrytped(stage: apigw.Stage, props: CompliantApiStageProps): boolean {
-  if (props.disabledRules?.includes(API_GW_CACHE_ENABLED_AND_ENCRYPTED)) { return true; }
-  //check if cache is enabled and encrypted
-  // return true if cache is enabled and encrypted
-  // stage.cacheClusterEnabled = true;
-
-  return false;
-}
+//   // return false if not associated with a waf
+//   return false;
+// }
 
 /**
- * checkExecutionLoggingEnabled
+ * checks if logging is enabled
  * API_GW_EXECUTION_LOGGING_ENABLED
- * @param stage 
- * @returns 
+ * @param props : CompliantApiStageProps
+ * @returns boolean
  */
 export function checkExecutionLoggingEnabled(props: CompliantApiStageProps): boolean {
   if (props.disabledRules?.includes(API_GW_EXECUTION_LOGGING_ENABLED)) {
@@ -100,10 +78,10 @@ export function checkExecutionLoggingEnabled(props: CompliantApiStageProps): boo
 }
 
 /**
- * checkDomainRequired
+ * checks if domain is required and executeApiEndpoint is disabled
  * API_GW_DOMAIN_REQUIRED
- * @param stage 
- * @returns 
+ * @param props : CompliantApigatewayProps
+ * @returns boolean
  */
 export function checkDomainRequired(props: CompliantApigatewayProps): boolean {
   if (props.disabledRules?.includes(API_GW_DOMAIN_REQUIRED)) { return true; }

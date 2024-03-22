@@ -9,6 +9,7 @@ import { CompliantDynamodbProps } from '.';
 
 //Compliant config rules
 const DYNAMODB_AUTOSCALING_ENABLED = 'DYNAMODB_AUTOSCALING_ENABLED';
+const DYNAMODB_BILLING_MODE = 'DYNAMODB_BILLING_MODE';
 const DYNAMODB_IN_BACKUP_PLAN = 'DYNAMODB_IN_BACKUP_PLAN';
 const DYNAMODB_PITR_ENABLED = 'DYNAMODB_PITR_ENABLED';
 const DYNAMODB_TABLE_DELETION_PROTECTION_ENABLED = "DYNAMODB_TABLE_DELETION_PROTECTION_ENABLED";
@@ -62,7 +63,7 @@ export function getDeletionDetection(props: CompliantDynamodbProps) {
 
 export function getBillingMode(props: CompliantDynamodbProps) {
     try {
-        if (props.disabledRules?.includes(DYNAMODB_AUTOSCALING_ENABLED)) {
+        if (props.disabledRules?.includes(DYNAMODB_BILLING_MODE)) {
             return props.billingMode;
         }
         return dynamodb.BillingMode.PAY_PER_REQUEST;
