@@ -8,6 +8,8 @@ import * as serviceVal from './serviceValidation';
 import * as serviceProps from './serviceProps';
 import { CfnBucket } from 'aws-cdk-lib/aws-s3';
 
+type DisabledRule = 'S3_BUCKET_ACL_PROHIBITED' | 'S3_BUCKET_DEFAULT_LOCK_ENABLED' | 'S3_BUCKET_LEVEL_PUBLIC_ACCESS_PROHIBITED' | 'S3_BUCKET_LOGGING_ENABLED' | 'S3_BUCKET_PUBLIC_READ_PROHIBITED' | 'S3_BUCKET_PUBLIC_WRITE_PROHIBITED' | 'S3_BUCKET_SERVER_SIDE_ENCRYPTION_ENABLED' | 'S3_BUCKET_SSL_REQUESTS_ONLY' | 'S3_DEFAULT_ENCRYPTION_KMS' | 'S3_EVENT_NOTIFICATIONS_ENABLED' | 'S3_LIFECYCLE_POLICY_CHECK' | 'S3_RESOURCES_PROTECTED_BY_BACKUP_PLAN';
+
 export interface CompliantS3Props extends s3.BucketProps {
   // Define construct properties here
   /**
@@ -27,8 +29,9 @@ export interface CompliantS3Props extends s3.BucketProps {
  * S3_EVENT_NOTIFICATIONS_ENABLED
  * S3_LIFECYCLE_POLICY_CHECK
  * S3_RESOURCES_PROTECTED_BY_BACKUP_PLAN
+ * BACKUP_RECOVERY_POINT_MANUAL_DELETION_DISABLED
  */
-  readonly disabledRules?: string[];
+  readonly disabledRules?: DisabledRule[];
 
   /**
 * Use an existing BackupVault and import it by name
@@ -65,11 +68,11 @@ export class CompliantS3 extends s3.Bucket {
         return [
           ...serviceVal.checkLifecyclePolicy(props) ? [] : ['lifecycle policy is not enabled'],
           ...serviceVal.checkEventNotifications(this, props) ? [] : ['event notifications are not enabled'],
-          ...serviceVal.checkPublicReadProhibited(((this?.node.defaultChild as CfnBucket).publicAccessBlockConfiguration as any), props) ? [] : ['public read is prohibited'],
-          ...serviceVal.checkPublicWriteProhibited(((this?.node.defaultChild as CfnBucket).publicAccessBlockConfiguration as any), props) ? [] : ['public write is prohibited'],
+          ...serviceVal.checkPublicReadProhibited(((this?.node.defaultChild as CfnBucket).publicAccessBlockConfiguration as s3.BlockPublicAccess), props) ? [] : ['public read is prohibited'],
+          ...serviceVal.checkPublicWriteProhibited(((this?.node.defaultChild as CfnBucket).publicAccessBlockConfiguration as s3.BlockPublicAccess), props) ? [] : ['public write is prohibited'],
           ...serviceVal.checkServerSideEncryption(props) ? [] : ['Please use an KMS key (aws managed or customer owned)'],
           ...serviceVal.checkEncryptionCustomerKMS(props) ? [] : ['please use customer managed KMS key for encryption'],
-          ...serviceVal.checkLoggingEnabled(((this?.node.defaultChild as CfnBucket).loggingConfiguration as any), props) ? [] : ['logging is not enabled'],
+          ...serviceVal.checkLoggingEnabled(((this?.node.defaultChild as CfnBucket).loggingConfiguration as s3.CfnBucket.LoggingConfigurationProperty), props) ? [] : ['logging is not enabled'],
         ]
       }
     })

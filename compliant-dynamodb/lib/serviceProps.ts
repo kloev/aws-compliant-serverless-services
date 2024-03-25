@@ -8,92 +8,97 @@ import {
 import { CompliantDynamodbProps } from '.';
 
 //Compliant config rules
-const DYNAMODB_AUTOSCALING_ENABLED = 'DYNAMODB_AUTOSCALING_ENABLED';
 const DYNAMODB_BILLING_MODE = 'DYNAMODB_BILLING_MODE';
 const DYNAMODB_IN_BACKUP_PLAN = 'DYNAMODB_IN_BACKUP_PLAN';
 const DYNAMODB_PITR_ENABLED = 'DYNAMODB_PITR_ENABLED';
 const DYNAMODB_TABLE_DELETION_PROTECTION_ENABLED = "DYNAMODB_TABLE_DELETION_PROTECTION_ENABLED";
 const DYNAMODB_TABLE_ENCRYPTED_KMS = 'DYNAMODB_TABLE_ENCRYPTED_KMS';
 const DYNAMODB_TABLE_ENCRYPTION_ENABLED = 'DYNAMODB_TABLE_ENCRYPTION_ENABLED';
-const DYNAMODB_THROUGHPUT_LIMIT_CHECK = "DYNAMODB_THROUGHPUT_LIMIT_CHECK";
 const BACKUP_RECOVERY_POINT_MANUAL_DELETION_DISABLED = 'BACKUP_RECOVERY_POINT_MANUAL_DELETION_DISABLED';
 
+const DELETE_BACK_AFTER_DAYS_DEFAULT = 35;
+const BACKUP_CRON_SCHEDULE_DEFAULT = '21 0 * * ? *';
+
+/**
+ * sets encryption type to customer managed if not disabled 
+ * 
+ * @param props : CompliantDynamodbProps
+ * @returns boolean
+ */
 export function getEncryption(props: CompliantDynamodbProps) {
-    try {
-        if (
-            props.disabledRules?.includes(DYNAMODB_TABLE_ENCRYPTION_ENABLED) ||
-            props.disabledRules?.includes(DYNAMODB_TABLE_ENCRYPTED_KMS)
-        ) {
-            return props.encryption;
-        }
-        if (props.disabledRules?.includes(DYNAMODB_TABLE_ENCRYPTION_ENABLED) &&
-            props.disabledRules?.includes(DYNAMODB_TABLE_ENCRYPTED_KMS)) {
-            return props.encryption;
-        }
-        return dynamodb.TableEncryption.CUSTOMER_MANAGED;
-    } catch (error) {
-        console.error('An error occurred while getting encryption:', error);
-        throw error;
+    if (
+        props.disabledRules?.includes(DYNAMODB_TABLE_ENCRYPTION_ENABLED) ||
+        props.disabledRules?.includes(DYNAMODB_TABLE_ENCRYPTED_KMS)
+    ) {
+        return props.encryption;
     }
+    if (props.disabledRules?.includes(DYNAMODB_TABLE_ENCRYPTION_ENABLED) &&
+        props.disabledRules?.includes(DYNAMODB_TABLE_ENCRYPTED_KMS)) {
+        return props.encryption;
+    }
+    return dynamodb.TableEncryption.CUSTOMER_MANAGED;
 }
 
+/**
+ * checks if point in time recovery is enabled
+ * @param props : CompliantDynamodbProps
+ * @returns boolean
+ */
 export function getPitr(props: CompliantDynamodbProps) {
-    try {
-        if(props.disabledRules?.includes(DYNAMODB_PITR_ENABLED)){
-            return props.pointInTimeRecovery;
-        }
-        return !props.disabledRules?.includes(DYNAMODB_PITR_ENABLED);
-    } catch (error) {
-        console.error('An error occurred while checking for Pitr:', error);
-        throw error;
+    if (props.disabledRules?.includes(DYNAMODB_PITR_ENABLED)) {
+        return props.pointInTimeRecovery;
     }
+    return !props.disabledRules?.includes(DYNAMODB_PITR_ENABLED);
 }
 
+/**
+ * checks if deletion protection is enabled
+ * @param props : CompliantDynamodbProps
+ * @returns boolean
+ */
 export function getDeletionDetection(props: CompliantDynamodbProps) {
-    try {
-        if(props.disabledRules?.includes(DYNAMODB_TABLE_DELETION_PROTECTION_ENABLED)){
-            return props.deletionProtection;
-        }
-        return !props.disabledRules?.includes(DYNAMODB_TABLE_DELETION_PROTECTION_ENABLED);
-    } catch (error) {
-        console.error('An error occurred while checking for deletion detection:', error);
-        throw error;
+    if (props.disabledRules?.includes(DYNAMODB_TABLE_DELETION_PROTECTION_ENABLED)) {
+        return props.deletionProtection;
     }
+    return !props.disabledRules?.includes(DYNAMODB_TABLE_DELETION_PROTECTION_ENABLED);
 }
 
+/**
+ * checks if billing mode is set to provisioned
+ * @param props : CompliantDynamodbProps
+ * @returns boolean
+ */
 export function getBillingMode(props: CompliantDynamodbProps) {
-    try {
-        if (props.disabledRules?.includes(DYNAMODB_BILLING_MODE)) {
-            return props.billingMode;
-        }
-        return dynamodb.BillingMode.PAY_PER_REQUEST;
-    } catch (error) {
-        console.error('An error occurred while getting billing mode:', error);
-        throw error;
+    if (props.disabledRules?.includes(DYNAMODB_BILLING_MODE)) {
+        return props.billingMode;
     }
+    return dynamodb.BillingMode.PAY_PER_REQUEST;
 }
 
+/**
+ * creates a backup plan for the table
+ * @param table : dynamodb.Table
+ * @param props : CompliantDynamodbProps
+ * @returns beackupPlan
+ */
 export function createBackupPlan(table: dynamodb.Table, props: CompliantDynamodbProps) {
     try {
         if (props.disabledRules?.includes(DYNAMODB_IN_BACKUP_PLAN)) {
             return undefined;
         }
-        const backupPlan = new backup.BackupPlan(table, 'DynamoDbBackupPlan', {
+        const backupPlan = new backup.BackupPlan(table, 'DynamoDbBackupPlan' + table.tableName, {
             backupVault: createBackupVault(table, props),
             backupPlanRules: [
                 new backup.BackupPlanRule({
-                    ruleName: 'daily-dynamodb-backup',
+                    ruleName: 'daily-dynamodb-backup-' + table.tableName,
                     scheduleExpression:
                         props.backupPlanStartTime ??
-                        events.Schedule.cron({
-                            hour: '21',
-                            minute: '0',
-                        }),
-                    deleteAfter: Duration.days(props.deleteBackupAfterDays ?? 35),
+                        events.Schedule.expression(BACKUP_CRON_SCHEDULE_DEFAULT),
+                    deleteAfter: Duration.days(props.deleteBackupAfterDays ?? DELETE_BACK_AFTER_DAYS_DEFAULT),
                 }),
             ],
         });
-        backupPlan.addSelection('DynamoDb', {
+        backupPlan.addSelection('DynamoDb' + table.tableName, {
             resources: [backup.BackupResource.fromArn(table.tableArn)],
         });
         return backupPlan;
@@ -103,22 +108,28 @@ export function createBackupPlan(table: dynamodb.Table, props: CompliantDynamodb
     }
 }
 
+/**
+ * creates a backup vault for the table
+ * @param table : dynamodb.Table
+ * @param props : CompliantDynamodbProps
+ * @returns backupVault
+ */
 export function createBackupVault(table: dynamodb.Table, props: CompliantDynamodbProps) {
     try {
         if (props.disabledRules?.includes(BACKUP_RECOVERY_POINT_MANUAL_DELETION_DISABLED)) {
-            const backupVault = new backup.BackupVault(table, 'DynamoDbBackupVault');
+            const backupVault = new backup.BackupVault(table, 'DynamoDbBackupVault' + table.tableName);
             return backupVault;
         }
 
         if (props.backupVaultName) {
             return backup.BackupVault.fromBackupVaultName(
                 table,
-                'ImportedBackupVault',
+                'ImportedBackupVault' + table.tableName,
                 props.backupVaultName,
             );
         }
 
-        return new backup.BackupVault(table, 'DynamoDbBackupVault', {
+        return new backup.BackupVault(table, 'DynamoDbBackupVault' + table.tableName, {
             accessPolicy: new iam.PolicyDocument({
                 statements: [
                     new iam.PolicyStatement({

@@ -1,13 +1,11 @@
 import {
     aws_lambda as lambda,
 } from 'aws-cdk-lib';
-import {CompliantLambdaProps} from '.';
+import { CompliantLambdaProps } from '.';
 
 /**
  * Valid runtimes, does not contain custom runtimes
- * LAMBDA_FUNCTION_SETTINGS_CHECK
  */
-const getNameFromRuntime = (runtime: lambda.Runtime): string => runtime.name
 export const validRuntimes = [
     lambda.Runtime.NODEJS_16_X,
     lambda.Runtime.NODEJS_18_X,
@@ -26,12 +24,12 @@ export const validRuntimes = [
 ]
 
 /**
- * 
- * @param rt 
- * @param props 
- * @returns 
+ * checks if runtime is valid
+ * @param rt : lambda.Runtime
+ * @param props : CompliantLambdaProps
+ * @returns boolean
  */
-export function isRuntimeValid(rt: lambda.Runtime, props: CompliantLambdaProps) :boolean {
+export function isRuntimeValid(rt: lambda.Runtime, props: CompliantLambdaProps): boolean {
     if (props.disabledRules?.includes('LAMBDA_FUNCTION_SETTINGS_CHECK')) {
         return true;
     };
@@ -39,16 +37,16 @@ export function isRuntimeValid(rt: lambda.Runtime, props: CompliantLambdaProps) 
 };
 
 /**
- * Valid principal
+ * Valid principal 
  * LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED
- * @param props 
- * @returns 
+ * @param props : CompliantLambdaProps
+ * @returns boolean
  */
 export function checkNoPublicAccess(props: CompliantLambdaProps): boolean {
     if (props.disabledRules?.includes('LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED')) {
         return true;
     };
-    const principal =  props.role?.grantPrincipal
+    const principal = props.role?.grantPrincipal
     // Prüfen, ob der Principal leer ist oder ein Wildcard (*) enthält
     if (!principal || typeof principal === 'string' && principal === "*" || Object.keys(principal).length === 0) {
         return false;
@@ -63,8 +61,8 @@ export function checkNoPublicAccess(props: CompliantLambdaProps): boolean {
 /**
  * Vpc enabled
  * LAMBDA_INSIDE_VPC
- * @param props 
- * @returns 
+ * @param props : CompliantLambdaProps
+ * @returns boolean
  */
 export function checkVpcEnabled(props: CompliantLambdaProps): boolean {
     if (props.disabledRules?.includes('LAMBDA_INSIDE_VPC')) {
@@ -79,8 +77,8 @@ export function checkVpcEnabled(props: CompliantLambdaProps): boolean {
 /**
  * Vpc has multi az
  * LAMBDA_VPC_MULTI_AZ_CHECK
- * @param props 
- * @returns 
+ * @param props : CompliantLambdaProps
+ * @returns boolean
  */
 export function checkVpcMultiAz(props: CompliantLambdaProps): boolean {
     if (props.disabledRules?.includes('LAMBDA_VPC_MULTI_AZ_CHECK')) {

@@ -4,18 +4,21 @@ import {
 import { Construct } from 'constructs';
 import * as serviceVal from './serviceValidation';
 import * as serviceProps from './serviceProps';
-import { CfnRestApi } from 'aws-cdk-lib/aws-apigateway';
+import { CfnRestApi, EndpointConfiguration } from 'aws-cdk-lib/aws-apigateway';
+
+export type DisabledRuleGateway = 'API_GW_ENDPOINT_TYPE_CHECK' | 'API_GW_CACHE_ENABLED_AND_ENCRYPTED' | 'API_GW_EXECUTION_LOGGING_ENABLED' | 'API_GW_DOMAIN_REQUIRED';
+export type DisabledRuleStage = 'API_GW_CACHE_ENABLED_AND_ENCRYPTED' | 'API_GW_EXECUTION_LOGGING_ENABLED';
 
 export interface CompliantApiStageProps extends apigw.StageProps {
   /**
-* AWS Config rules that I want to opt out
-* @default - construct is compliant against all rules
-*
-* List of rules to opt out:
-* 'API_GW_CACHE_ENABLED_AND_ENCRYPTED'
-* 'API_GW_EXECUTION_LOGGING_ENABLED'
-*/
-  readonly disabledRules?: string[];
+  * AWS Config rules that I want to opt out
+  * @default - construct is compliant against all rules
+  *
+  * List of rules to opt out:
+  * 'API_GW_CACHE_ENABLED_AND_ENCRYPTED'
+  * 'API_GW_EXECUTION_LOGGING_ENABLED'
+  */
+  readonly disabledRules?: DisabledRuleStage[];
 }
 
 export interface CompliantApigatewayProps extends apigw.RestApiProps {
@@ -29,7 +32,7 @@ export interface CompliantApigatewayProps extends apigw.RestApiProps {
    * 'API_GW_EXECUTION_LOGGING_ENABLED'
    * 'API_GW_DOMAIN_REQUIRED'
    */
-  readonly disabledRules?: string[];
+  readonly disabledRules?: DisabledRuleGateway[];
 }
 export class CompliantApiStage extends apigw.Stage {
   constructor(scope: Construct, id: string, props: CompliantApiStageProps) {
@@ -41,9 +44,7 @@ export class CompliantApiStage extends apigw.Stage {
     this.node.addValidation({
       validate: () => {
         return [
-          // checkWafAssociated
-          // checkExecutionLoggingEnabled
-          ...serviceVal.checkExecutionLoggingEnabled(props) ? [] : ["Execution logging is not enabled."],
+          ...serviceVal.checkExecutionLoggingEnabled(props) ? [] : ["Execution logging must be enabled."],
         ]
       }
     })
@@ -55,12 +56,12 @@ export class CompliantApigateway extends apigw.RestApi {
   constructor(scope: Construct, id: string, props: CompliantApigatewayProps) {
     super(scope, id, {
       ...props,
-      deployOptions: serviceProps.getDeployOptionsv1(props),
+      deployOptions: serviceProps.getDeployOptions(props),
     })
     this.node.addValidation({
       validate: () => {
         return [
-          ...serviceVal.isEndpointTypeValid(((this?.node.defaultChild as CfnRestApi).endpointConfiguration as any), props) ? [] : ["Endpoint type is invalid."],
+          ...serviceVal.isEndpointTypeValid(((this?.node.defaultChild as CfnRestApi).endpointConfiguration as EndpointConfiguration), props) ? [] : ["Endpoint type is invalid."],
           ...serviceVal.checkDomainRequired(props) ? [] : ["Domain name is required and ExecuteApiEndpoint must be disabled."],
         ]
       }

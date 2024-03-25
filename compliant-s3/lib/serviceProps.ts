@@ -8,33 +8,22 @@ import {
 
 import { CompliantS3Props } from '.';
 
-/**
-* AWS Config rules that I want to opt out
-* @default - table is compliant against all rules
-*
-* List of rules to opt out:
-* S3_BUCKET_ACL_PROHIBITED
-* S3_BUCKET_DEFAULT_LOCK_ENABLED
-* S3_BUCKET_LEVEL_PUBLIC_ACCESS_PROHIBITED
-* S3_BUCKET_LOGGING_ENABLED
-* S3_BUCKET_POLICY_GRANTEE_CHECK
-* S3_BUCKET_PUBLIC_READ_PROHIBITED
-* S3_BUCKET_PUBLIC_WRITE_PROHIBITED
-* S3_BUCKET_SERVER_SIDE_ENCRYPTION_ENABLED
-* S3_BUCKET_SSL_REQUESTS_ONLY
-* S3_DEFAULT_ENCRYPTION_KMS
-* S3_EVENT_NOTIFICATIONS_ENABLED
-* S3_LIFECYCLE_POLICY_CHECK
-* S3_RESOURCES_PROTECTED_BY_BACKUP_PLAN
-*/
+const DELETE_BACK_AFTER_DAYS_DEFAULT = 35;
+const BACKUP_CRON_SCHEDULE_DEFAULT = '21 0 * * ? *';
 
 const S3_BUCKET_DEFAULT_LOCK_ENABLED = 'S3_BUCKET_DEFAULT_LOCK_ENABLED';
 const S3_BUCKET_ACL_PROHIBITED = 'S3_BUCKET_ACL_PROHIBITED';
 const S3_BUCKET_LEVEL_PUBLIC_ACCESS_PROHIBITED = 'S3_BUCKET_LEVEL_PUBLIC_ACCESS_PROHIBITED';
 const S3_BUCKET_SSL_REQUESTS_ONLY = 'S3_BUCKET_SSL_REQUESTS_ONLY';
 const S3_RESOURCES_PROTECTED_BY_BACKUP_PLAN = 'S3_RESOURCES_PROTECTED_BY_BACKUP_PLAN';
+const BACKUP_RECOVERY_POINT_MANUAL_DELETION_DISABLED = 'BACKUP_RECOVERY_POINT_MANUAL_DELETION_DISABLED';
 
-//S3_BUCKET_DEFAULT_LOCK_ENABLED
+/**
+ * S3_BUCKET_DEFAULT_LOCK_ENABLED
+ * checks if the default lock is enabled
+ * @param props : CompliantS3Props
+ * @returns boolean
+ */
 export function getDefaultLock(props: CompliantS3Props) {
     if (props.disabledRules?.includes(S3_BUCKET_DEFAULT_LOCK_ENABLED)) {
         return props.objectLockEnabled;
@@ -42,7 +31,12 @@ export function getDefaultLock(props: CompliantS3Props) {
     return !props.disabledRules?.includes(S3_BUCKET_DEFAULT_LOCK_ENABLED);
 }
 
-//S3_BUCKET_ACL_PROHIBITED
+/**
+ * S3_BUCKET_ACL_PROHIBITED
+ * checks if ACL is prohibited
+ * @param props : CompliantS3Props
+ * @returns accessControl
+ */
 export function getAclProhibited(props: CompliantS3Props) {
     if (props.disabledRules?.includes(S3_BUCKET_ACL_PROHIBITED)) {
         return props.accessControl;
@@ -50,7 +44,12 @@ export function getAclProhibited(props: CompliantS3Props) {
     return s3.BucketAccessControl.PRIVATE;
 }
 
-//S3_BUCKET_LEVEL_PUBLIC_ACCESS_PROHIBITED
+/**
+ * S3_BUCKET_LEVEL_PUBLIC_ACCESS_PROHIBITED
+ * checks if public access is prohibited
+ * @param props : CompliantS3Props
+ * @returns publicAccess
+ */
 export function getPublicAccess(props: CompliantS3Props) {
     if (props.disabledRules?.includes(S3_BUCKET_LEVEL_PUBLIC_ACCESS_PROHIBITED)) {
         return props.blockPublicAccess;
@@ -58,7 +57,12 @@ export function getPublicAccess(props: CompliantS3Props) {
     return s3.BlockPublicAccess.BLOCK_ALL;
 }
 
-// S3_BUCKET_SSL_REQUESTS_ONLY
+/**
+ * S3_BUCKET_SSL_REQUESTS_ONLY
+ * checks if SSL requests only
+ * @param props : CompliantS3Props
+ * @returns boolean
+ */
 export function getSslRequestsOnly(props: CompliantS3Props){
     if (props.disabledRules?.includes('S3_BUCKET_SSL_REQUESTS_ONLY')) {
         return props.enforceSSL;
@@ -66,35 +70,30 @@ export function getSslRequestsOnly(props: CompliantS3Props){
     return !props.disabledRules?.includes(S3_BUCKET_SSL_REQUESTS_ONLY);
 }
 
-// S3_DEFAULT_ENCRYPTION_KMS
-// export function getEncryption(props: CompliantS3Props){
-//     if (props.disabledRules?.includes('S3_DEFAULT_ENCRYPTION_KMS')) {
-//         return props.encryption;
-//     }
-//     return s3.BucketEncryption.KMS;
-// }
-
+/**
+ * creates a backup plan
+ * @param s3 : s3 bucket
+ * @param props : CompliantS3Props
+ * @returns backupPlan
+ */
 export function createBackupPlan(s3: s3.Bucket, props: CompliantS3Props) {
     try {
         if (props.disabledRules?.includes(S3_RESOURCES_PROTECTED_BY_BACKUP_PLAN)) {
             return undefined;
         }
-        const backupPlan = new backup.BackupPlan(s3, 's3BackupPlan', {
+        const backupPlan = new backup.BackupPlan(s3, 's3BackupPlan' + s3.bucketName, {
             backupVault: createBackupVault(s3, props),
             backupPlanRules: [
                 new backup.BackupPlanRule({
-                    ruleName: 'daily-s3-backup',
+                    ruleName: 'daily-s3-backup' + s3.bucketName,
                     scheduleExpression:
                         props.backupPlanStartTime ??
-                        events.Schedule.cron({
-                            hour: '21',
-                            minute: '0',
-                        }),
-                    deleteAfter: Duration.days(props.deleteBackupAfterDays ?? 35),
+                        events.Schedule.expression(BACKUP_CRON_SCHEDULE_DEFAULT),
+                    deleteAfter: Duration.days(props.deleteBackupAfterDays ?? DELETE_BACK_AFTER_DAYS_DEFAULT),
                 }),
             ],
         });
-        backupPlan.addSelection('s3', {
+        backupPlan.addSelection('s3' + s3.bucketName, {
             resources: [backup.BackupResource.fromArn(s3.bucketArn)],
         });
         return backupPlan;
@@ -104,22 +103,28 @@ export function createBackupPlan(s3: s3.Bucket, props: CompliantS3Props) {
     }
 }
 
+/**
+ * creates a backup vault
+ * @param s3 : s3 bucket
+ * @param props : CompliantS3Props
+ * @returns backupVault
+ */
 export function createBackupVault(s3: s3.Bucket, props: CompliantS3Props) {
     try {
-        if (props.disabledRules?.includes(S3_RESOURCES_PROTECTED_BY_BACKUP_PLAN)) {
-            const backupVault = new backup.BackupVault(s3, 's3BackupVault');
+        if (props.disabledRules?.includes(BACKUP_RECOVERY_POINT_MANUAL_DELETION_DISABLED)) {
+            const backupVault = new backup.BackupVault(s3, 's3BackupVault' + s3.bucketName);
             return backupVault;
         }
 
         if (props.backupVaultName) {
             return backup.BackupVault.fromBackupVaultName(
                 s3,
-                'ImportedBackupVault',
+                'ImportedBackupVault' + s3.bucketName,
                 props.backupVaultName,
             );
         }
 
-        return new backup.BackupVault(s3, 's3BackupVault', {
+        return new backup.BackupVault(s3, 's3BackupVault' + s3.bucketName, {
             accessPolicy: new iam.PolicyDocument({
                 statements: [
                     new iam.PolicyStatement({

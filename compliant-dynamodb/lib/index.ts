@@ -7,6 +7,8 @@ import { Construct } from 'constructs';
 import * as serviceProps from './serviceProps';
 import * as serviceVal from './serviceValidation';
 
+type DisabledRule = 'BACKUP_RECOVERY_POINT_MANUAL_DELETION_DISABLED' | 'DYNAMODB_IN_BACKUP_PLAN' | 'DYNAMODB_PITR_ENABLED' | 'DYNAMODB_AUTOSCALING_ENABLED' | 'DYNAMODB_THROUGHPUT_LIMIT_CHECK' | 'DYNAMODB_TABLE_ENCRYPTED_KMS' | 'DYNAMODB_TABLE_DELETION_PROTECTION_ENABLED' | 'DYNAMODB_BILLING_MODE' | 'DYNAMODB_TABLE_ENCRYPTION_ENABLED';
+
 export interface CompliantDynamodbProps extends dynamodb.TableProps {
   // Define construct properties here
   /**
@@ -35,7 +37,7 @@ export interface CompliantDynamodbProps extends dynamodb.TableProps {
       'DYNAMODB_TABLE_DELETION_PROTECTION_ENABLED'
       'DYNAMODB_BILLING_MODE'
    */
-  readonly disabledRules?: string[];
+  readonly disabledRules?: DisabledRule[];
 
   /**
    * Time to start the backup

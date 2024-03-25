@@ -6,50 +6,40 @@ import {
 import { CompliantDynamodbProps } from '.';
 
 /**
- * AWS Config rules that I want to opt out
- * @default - table is compliant against all rules
- *
- * List of rules to opt out:
- *  'BACKUP_RECOVERY_POINT_MANUAL_DELETION_DISABLED',
-    'DYNAMODB_IN_BACKUP_PLAN',
-    'DYNAMODB_PITR_ENABLED',
-    'DYNAMODB_AUTOSCALING_ENABLED',
-    'DYNAMODB_THROUGHPUT_LIMIT_CHECK',
-    'DYNAMODB_TABLE_ENCRYPTED_KMS',
-    'DYNAMODB_TABLE_DELETION_PROTECTION_ENABLED'
- */
-
-/**
  * checks if throughput limit is defined
- * @param props 
- * @returns 
+ * @param props : CompliantDynamodbProps
+ * @returns boolean
  */
 export function checkThroughoutLimit(props: CompliantDynamodbProps): boolean {
-    if(props.disabledRules?.includes('DYNAMODB_THROUGHPUT_LIMIT_CHECK')){
+    if (props.disabledRules?.includes('DYNAMODB_THROUGHPUT_LIMIT_CHECK')) {
         return true;
     }
-    if (props.billingMode == dynamodb.BillingMode.PROVISIONED) {
-        if (props.readCapacity && props.writeCapacity) {
-            return true;
-        }
-        return false;
+    // if billing mode is not provisioned, then throughput limit is not required
+    if (!(props.billingMode == dynamodb.BillingMode.PROVISIONED)) {
+        return true;
     }
-    return true;
+    if (props.readCapacity && props.writeCapacity) {
+        return true;
+    }
+    return false;
 }
 /**
  * checks if autoscaling is enabled
- * @param props 
- * @returns 
+ * @param props : CompliantDynamodbProps
+ * @param table : dynamodb.Table
+ * @returns boolean
  */
 export function checkAutoscalingEnabled(props: CompliantDynamodbProps, table: dynamodb.Table): boolean {
-    if(props.disabledRules?.includes('DYNAMODB_AUTOSCALING_ENABLED')){
+    if (props.disabledRules?.includes('DYNAMODB_AUTOSCALING_ENABLED')) {
         return true;
     }
-    if (props.billingMode == dynamodb.BillingMode.PROVISIONED) {
-        if ('autoScaleReadCapacity' in table && 'autoScaleWriteCapacity' in table) {
-            return true;
-        }
-        return false;
+    // if billing mode is not provisioned, then throughput limit is not required
+    if (!(props.billingMode == dynamodb.BillingMode.PROVISIONED)) {
+        return true;
     }
-    return true;
+    if ('autoScaleReadCapacity' in table && 'autoScaleWriteCapacity' in table) {
+        return true;
+    }
+    return false;
+
 }

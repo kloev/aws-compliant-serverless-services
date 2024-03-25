@@ -4,6 +4,7 @@ import {
 import { Construct } from 'constructs';
 import * as serviceVal from './serviceValidation';
 
+type DisabledRule = 'LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED' | 'LAMBDA_FUNCTION_SETTINGS_CHECK' | 'LAMBDA_VPC_MULTI_AZ_CHECK' | 'LAMBDA_INSIDE_VPC';
 export interface CompliantLambdaProps extends lambda.FunctionProps {
   // Define construct properties here
 
@@ -17,7 +18,7 @@ export interface CompliantLambdaProps extends lambda.FunctionProps {
  * LAMBDA_VPC_MULTI_AZ_CHECK
  * LAMBDA_INSIDE_VPC
  */
-  readonly disabledRules?: string[];
+  readonly disabledRules?: DisabledRule[];
 }
 
 export class CompliantLambda extends lambda.Function {
