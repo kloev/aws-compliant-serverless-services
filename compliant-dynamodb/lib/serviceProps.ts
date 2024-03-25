@@ -17,7 +17,6 @@ const DYNAMODB_TABLE_ENCRYPTION_ENABLED = 'DYNAMODB_TABLE_ENCRYPTION_ENABLED';
 const BACKUP_RECOVERY_POINT_MANUAL_DELETION_DISABLED = 'BACKUP_RECOVERY_POINT_MANUAL_DELETION_DISABLED';
 
 const DELETE_BACK_AFTER_DAYS_DEFAULT = 35;
-const BACKUP_CRON_SCHEDULE_DEFAULT = '21 0 * * ? *';
 
 /**
  * sets encryption type to customer managed if not disabled 
@@ -86,19 +85,22 @@ export function createBackupPlan(table: dynamodb.Table, props: CompliantDynamodb
         if (props.disabledRules?.includes(DYNAMODB_IN_BACKUP_PLAN)) {
             return undefined;
         }
-        const backupPlan = new backup.BackupPlan(table, 'DynamoDbBackupPlan' + table.tableName, {
+        const backupPlan = new backup.BackupPlan(table, 'DynamoDbBackupPlan', {
             backupVault: createBackupVault(table, props),
             backupPlanRules: [
                 new backup.BackupPlanRule({
-                    ruleName: 'daily-dynamodb-backup-' + table.tableName,
+                    ruleName: 'daily-dynamodb-backup-',
                     scheduleExpression:
                         props.backupPlanStartTime ??
-                        events.Schedule.expression(BACKUP_CRON_SCHEDULE_DEFAULT),
+                        events.Schedule.cron({
+                            hour: '21',
+                            minute: '0',
+                        }),
                     deleteAfter: Duration.days(props.deleteBackupAfterDays ?? DELETE_BACK_AFTER_DAYS_DEFAULT),
                 }),
             ],
         });
-        backupPlan.addSelection('DynamoDb' + table.tableName, {
+        backupPlan.addSelection('DynamoDb', {
             resources: [backup.BackupResource.fromArn(table.tableArn)],
         });
         return backupPlan;
@@ -117,19 +119,19 @@ export function createBackupPlan(table: dynamodb.Table, props: CompliantDynamodb
 export function createBackupVault(table: dynamodb.Table, props: CompliantDynamodbProps) {
     try {
         if (props.disabledRules?.includes(BACKUP_RECOVERY_POINT_MANUAL_DELETION_DISABLED)) {
-            const backupVault = new backup.BackupVault(table, 'DynamoDbBackupVault' + table.tableName);
+            const backupVault = new backup.BackupVault(table, 'DynamoDbBackupVault');
             return backupVault;
         }
 
         if (props.backupVaultName) {
             return backup.BackupVault.fromBackupVaultName(
                 table,
-                'ImportedBackupVault' + table.tableName,
+                'ImportedBackupVault',
                 props.backupVaultName,
             );
         }
 
-        return new backup.BackupVault(table, 'DynamoDbBackupVault' + table.tableName, {
+        return new backup.BackupVault(table, 'DynamoDbBackupVault', {
             accessPolicy: new iam.PolicyDocument({
                 statements: [
                     new iam.PolicyStatement({

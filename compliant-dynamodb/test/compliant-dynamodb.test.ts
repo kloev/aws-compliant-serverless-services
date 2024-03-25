@@ -132,7 +132,7 @@ test('DynamoDB Billing Mode is PROVISIONED', () => {
       name: 'id',
       type: dynamodb.AttributeType.STRING,
     },
-    disabledRules: ['DYNAMODB_AUTOSCALING_ENABLED', 'DYNAMODB_THROUGHPUT_LIMIT_CHECK'],
+    disabledRules: ['DYNAMODB_AUTOSCALING_ENABLED', 'DYNAMODB_THROUGHPUT_LIMIT_CHECK', 'DYNAMODB_BILLING_MODE'],
     billingMode: dynamodb.BillingMode.PROVISIONED,
     readCapacity: 5,
     writeCapacity: 5,

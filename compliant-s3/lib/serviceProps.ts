@@ -81,19 +81,22 @@ export function createBackupPlan(s3: s3.Bucket, props: CompliantS3Props) {
         if (props.disabledRules?.includes(S3_RESOURCES_PROTECTED_BY_BACKUP_PLAN)) {
             return undefined;
         }
-        const backupPlan = new backup.BackupPlan(s3, 's3BackupPlan' + s3.bucketName, {
+        const backupPlan = new backup.BackupPlan(s3, 's3BackupPlan', {
             backupVault: createBackupVault(s3, props),
             backupPlanRules: [
                 new backup.BackupPlanRule({
-                    ruleName: 'daily-s3-backup' + s3.bucketName,
+                    ruleName: 'daily-s3-backup' ,
                     scheduleExpression:
                         props.backupPlanStartTime ??
-                        events.Schedule.expression(BACKUP_CRON_SCHEDULE_DEFAULT),
+                        events.Schedule.cron({
+                            hour: '21',
+                            minute: '0',
+                        }),
                     deleteAfter: Duration.days(props.deleteBackupAfterDays ?? DELETE_BACK_AFTER_DAYS_DEFAULT),
                 }),
             ],
         });
-        backupPlan.addSelection('s3' + s3.bucketName, {
+        backupPlan.addSelection('s3', {
             resources: [backup.BackupResource.fromArn(s3.bucketArn)],
         });
         return backupPlan;
@@ -124,7 +127,7 @@ export function createBackupVault(s3: s3.Bucket, props: CompliantS3Props) {
             );
         }
 
-        return new backup.BackupVault(s3, 's3BackupVault' + s3.bucketName, {
+        return new backup.BackupVault(s3, 's3BackupVault', {
             accessPolicy: new iam.PolicyDocument({
                 statements: [
                     new iam.PolicyStatement({
